@@ -55,14 +55,15 @@ void onMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp)
   //conn->send(buf);
 }
 
-void regist(uint16_t tcp_port, uint16_t http_port)
+void regist(const char* ip, uint16_t tcp_port, uint16_t http_port)
 {
   // Create a consul client that uses default local endpoint `http://127.0.0.1:8500` and default data center
   Consul consul("http://172.16.13.71:8500");
   // We need the 'agent' endpoint for a service registration
   Agent agent(consul);
 
-  std::string httpS = "http://172.16.13.91:";
+  std::string httpS("http://");
+  httpS += std::string(ip) + std::string(":");
   httpS += std::to_string(http_port);
   httpS.append("/health");
 
@@ -73,7 +74,7 @@ void regist(uint16_t tcp_port, uint16_t http_port)
   agent.registerService(
       kw::name = "my-service",
       kw::id = serviceID,  // 唯一的服务 ID
-      kw::address = "172.16.13.91", // 指定IP地址
+      kw::address = ip, // 指定IP地址
       kw::port = tcp_port,
       kw::tags = {"tcp", "pong_server"},
       kw::check = HttpCheck{httpS, std::chrono::seconds(2)}
@@ -117,7 +118,7 @@ int main(int argc, char* argv[])
     httpserver.setThreadNum(1);
     httpserver.start();
 
-    regist(port, http_port);
+    regist(ip, port, http_port);
 
     loop.loop();
   }
